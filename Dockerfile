@@ -1,34 +1,34 @@
-# --- Dependencies ---
-FROM node:22-alpine AS deps
+# Build Stage
+FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
 
-# --- Build ---
-FROM node:22-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-# Build-time env vars needed to embed NEXT_PUBLIC_* values into the client bundle.
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . ./
+
+# Declare build-time args for all client-visible envs
 ARG NEXT_PUBLIC_API_URL
 ARG BACKEND_API_URL
 ARG JWT_SECRET
 
-ENV JWT_SECRET=${JWT_SECRET}
-ENV BACKEND_API_URL=${BACKEND_API_URL}
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Expose them as ENV so `next build` can inline them
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    BACKEND_API_URL=$BACKEND_API_URL \
+    JWT_SECRET=$JWT_SECRET
+
 RUN npm run build
 
-# --- Runtime ---
-FROM node:22-alpine AS runner
+# Serve Stage
+FROM node:22-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
+COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
 CMD ["npm", "start"]
