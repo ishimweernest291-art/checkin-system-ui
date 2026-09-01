@@ -9,13 +9,9 @@ COPY . ./
 
 # Declare build-time args for all client-visible envs
 ARG NEXT_PUBLIC_API_URL
-ARG BACKEND_API_URL
-ARG JWT_SECRET
 
 # Expose them as ENV so `next build` can inline them
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
-    BACKEND_API_URL=$BACKEND_API_URL \
-    JWT_SECRET=$JWT_SECRET
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 
